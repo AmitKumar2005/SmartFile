@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload & Extraction</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h2>Upload a PDF, Word, or PPT File</h2>
+    <form id="upload-form">
+        <input type="file" id="file" required />
+        <button type="submit">Upload File</button>
+    </form>
+    <h3>Extracted Content:</h3>
+    <div id="result"></div>
+
+    <h3>Search Files</h3>
+    <input type="text" id="search-bar" placeholder="Search content (e.g., rahul agrahari)...">
+    <button onclick="searchFiles()">Search</button>
+    <div id="search-results"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("upload-form");
+            if (!form) {
+                console.error("Form not found!");
+                return;
+            }
+            console.log("DOM loaded, attaching listener");
+
+            form.addEventListener("submit", function (event) {
+                event.preventDefault();
+                console.log("Form submitted - preventDefault called");
+
+                let fileInput = document.getElementById("file");
+                let resultDiv = document.getElementById("result");
+
+                if (!fileInput.files.length) {
+                    console.log("No file selected");
+                    alert("Please select a file.");
+                    return;
+                }
+
+                let formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+
+                console.log("Sending file:", fileInput.files[0].name);
+                resultDiv.innerHTML = "<strong>Processing file...</strong>";
+
+                fetch("/extract", {
+                    method: "POST",
+                    body: formData
+                })
+                    .then(response => {
+                        console.log("Fetch response received, status:", response.status);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log("Parsed JSON:", data);
+                        if (data.content && data.folder) {
+                            resultDiv.innerHTML = `
+                                <pre>${data.content}</pre>
+                                <p>Predicted Folder: <strong>${data.folder}</strong></p>
+                            `;
+                        } else if (data.error) {
+                            resultDiv.innerHTML = `<strong>Error: ${data.error}</strong>`;
+                        } else {
+                            resultDiv.innerHTML = "<strong>No content extracted or folder predicted.</strong>";
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Fetch error:", error);
+                        resultDiv.innerHTML = `<strong>Error: ${error.message}</strong>`;
+                    })
+                    .finally(() => {
+                        console.log("Fetch process completed");
+                    });
+            });
+
+            function searchFiles() {
+                const searchBar = document.getElementById("search-bar");
+                const query = searchBar.value.trim();
+                const resultsDiv = document.getElementById("search-results");
+
+                if (!query) {
+                    resultsDiv.innerHTML = "<strong>Please enter a search term.</strong>";
+                    return;
+                }
+
+                resultsDiv.innerHTML = "<strong>Searching...</strong>";
+                fetch(`/search?q=${encodeURIComponent(query)}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.results && data.results.length > 0) {
+                            resultsDiv.innerHTML = "<h4>Search Results:</h4>" + data.results.map(result => `
+                                <div>
+                                    <p><strong>File:</strong> ${result.filename} (<strong>Folder:</strong> ${result.folder})</p>
+                                    <p><strong>Content Preview:</strong> ${result.content}</p>
+                                </div>
+                            `).join("<hr>");
+                        } else if (data.error) {
+                            resultsDiv.innerHTML = `<strong>Error: ${data.error}</strong>`;
+                        } else {
+                            resultsDiv.innerHTML = "<strong>No matches found.</strong>";
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Search error:", error);
+                        resultsDiv.innerHTML = `<strong>Error: ${error.message}</strong>`;
+                    });
+            }
+        });
+    </script>
+</body>
+
+</html>
