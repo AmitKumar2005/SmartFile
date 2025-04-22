@@ -1,0 +1,7 @@
+.env
+model.pkl
+vectorizer.pkl
+train.log
+app.log
+Uploads/
+schema.sql

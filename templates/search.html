@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Search Files - SmartFile{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Search Files</h1>
+    <div class="mb-6">
+        <h2>Search Documents</h2>
+        <form hx-post="/search" hx-target="#search-result" hx-swap="innerHTML" id="search-form">
+            <div class="search-form">
+                <input type="text" name="query" id="query" placeholder="Enter search query" maxlength="255" required>
+                <button type="submit" class="button button-primary" id="search-btn">Search</button>
+            </div>
+            <p id="query-error" class="error-message"></p>
+        </form>
+        <div id="search-result" class="mt-4"></div>
+    </div>
+</div>
+<script>
+    const queryInput = document.getElementById('query');
+    const searchBtn = document.getElementById('search-btn');
+    const queryError = document.getElementById('query-error');
+
+    queryInput.addEventListener('input', function () {
+        queryError.classList.add('hidden');
+        searchBtn.disabled = this.value.trim().length === 0;
+    });
+
+    document.getElementById('search-form').addEventListener('submit', function (e) {
+        const query = queryInput.value.trim();
+        if (query.length === 0) {
+            e.preventDefault();
+            queryError.textContent = 'Please enter a search query';
+            queryError.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

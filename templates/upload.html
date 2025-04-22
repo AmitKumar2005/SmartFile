@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Upload Files - SmartFile{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Upload Files</h1>
+    <div class="mb-6">
+        <h2>Upload Document</h2>
+        <form hx-post="/extract" hx-target="#upload-result" hx-swap="innerHTML" enctype="multipart/form-data"
+            id="upload-form">
+            <div class="form-group">
+                <label for="file">Select File (PDF, DOCX, PPTX)</label>
+                <input type="file" name="file" id="file" accept=".pdf,.docx,.pptx" required>
+                <p id="file-error" class="error-message"></p>
+            </div>
+            <button type="submit" class="button button-green" id="upload-btn" disabled>Upload</button>
+        </form>
+        <div id="upload-result" class="mt-4"></div>
+    </div>
+    <div>
+        <div class="flex-between mb-4">
+            <h2>Your Folders</h2>
+            <button hx-get="/list_files" hx-target="#file-list" hx-swap="innerHTML"
+                class="button button-primary">Refresh Folders</button>
+        </div>
+        <div hx-get="/list_files" hx-trigger="load" hx-target="#file-list" id="file-list" class="file-list-container">
+        </div>
+    </div>
+</div>
+<script>
+    const fileInput = document.getElementById('file');
+    const uploadBtn = document.getElementById('upload-btn');
+    const fileError = document.getElementById('file-error');
+
+    fileInput.addEventListener('change', function () {
+        fileError.classList.add('hidden');
+        uploadBtn.disabled = true;
+        const file = this.files[0];
+        if (!file) {
+            fileError.textContent = 'Please select a file';
+            fileError.classList.remove('hidden');
+            return;
+        }
+        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+        if (!validTypes.includes(file.type)) {
+            fileError.textContent = 'Only PDF, DOCX, and PPTX files are allowed';
+            fileError.classList.remove('hidden');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            fileError.textContent = 'File size exceeds 10MB limit';
+            fileError.classList.remove('hidden');
+            return;
+        }
+        uploadBtn.disabled = false;
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.target.id === 'upload-result' && event.detail.xhr.status === 200) {
+            const response = JSON.parse(event.detail.xhr.response);
+            if (response.filename) {
+                document.getElementById('upload-result').innerHTML = `
+                    <div class="success-message font-semibold">Uploaded: ${response.filename}</div>
+                    <div>Predicted Folder: ${response.predicted_folder}</div>
+                `;
+            } else {
+                document.getElementById('upload-result').innerHTML = `
+                    <div class="already-message">${response.error}</div>
+                `;
+            }
+            htmx.trigger('#file-list', 'load');
+        }
+    });
+
+    document.body.addEventListener('htmx:responseError', function (event) {
+        const responseText = event.detail.xhr.responseText;
+        try {
+            const json = JSON.parse(responseText);
+            document.getElementById('upload-result').innerHTML = `
+                <div class="error-message font-semibold">Error: ${json.error}</div>
+            `;
+        } catch (e) {
+            document.getElementById('upload-result').innerHTML = `
+                <div class="error-message font-semibold">An unexpected error occurred.</div>
+            `;
+            console.error('Response parsing error:', e);
+        }
+    });
+
+    // Safeguard against undefined contentDocument access
+    window.addEventListener('error', function (e) {
+        if (e.message.includes('contentDocument')) {
+            console.warn('contentDocument error detected, likely due to missing iframe. Ignoring.');
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}
