@@ -9,7 +9,7 @@ CREATE TABLE users (
 
 CREATE TABLE IF NOT EXISTS files (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,  -- Removed NOT NULL to allow training data
+    user_id INT,
     filename VARCHAR(255) NOT NULL,
     folder VARCHAR(255) NOT NULL,
     text LONGTEXT,

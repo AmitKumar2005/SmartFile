@@ -33,15 +33,20 @@ from datetime import timedelta
 import re
 import mimetypes
 import secrets
+from init_db import init_db
 
-# Set up logging
+try:
+    init_db()
+except Exception as e:
+    logging.error(f"Failed to initialize database: {e}")
+    raise
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
 )
 
-# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
@@ -61,7 +66,6 @@ CORS(
 )
 csrf = CSRFProtect(app)
 
-# Rate limiting
 limiter = Limiter(
     get_remote_address, app=app, default_limits=["200 per day", "50 per hour"]
 )
@@ -78,14 +82,13 @@ for key, value in DB_CONFIG.items():
     if not value and key != "pool_name" and key != "pool_size":
         logging.error(f"Missing DB_CONFIG: {key}")
         raise ValueError(f"Missing DB_CONFIG: {key}")
-MAX_TEXT_LENGTH = 1_000_000  # 1MB limit for text
+MAX_TEXT_LENGTH = 1_000_000
 ALLOWED_MIMETYPES = {
     "application/pdf": ".pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
 }
 
-# Initialize database connection pool
 try:
     db_pool = pooling.MySQLConnectionPool(**DB_CONFIG)
     logging.info("MySQL connection pool initialized")
@@ -93,7 +96,6 @@ except Exception as e:
     logging.error(f"MySQL connection pool initialization failed: {e}")
     raise
 
-# Load model and vectorizer
 try:
     if not os.path.exists("model.pkl"):
         raise FileNotFoundError(
@@ -162,17 +164,14 @@ def validate_file(file):
     if not filename:
         return False, "Empty filename"
 
-    # Check file extension
     ext = os.path.splitext(filename)[1].lower()
     if ext not in [".pdf", ".docx", ".pptx"]:
         return False, "Invalid file extension"
 
-    # Check MIME type
     mime_type, _ = mimetypes.guess_type(filename)
     if mime_type not in ALLOWED_MIMETYPES:
         return False, "Invalid file type"
 
-    # Check file size
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
@@ -650,7 +649,6 @@ def extract():
     user_id = session["user_id"]
     sanitized_filename = sanitize_filename(file.filename)
 
-    # Check if file already exists for this user
     try:
         conn = db_pool.get_connection()
         cursor = conn.cursor()
@@ -757,7 +755,7 @@ def search():
     if not data or "query" not in data:
         logging.error("No query provided")
         return "<div class='error-message'>No query provided</div>", 400
-    query = data["query"].strip()[:255]  # Limit query length
+    query = data["query"].strip()[:255]
     if not query:
         logging.error("Empty query")
         return "<div class='error-message'>Empty query</div>", 400
@@ -843,7 +841,6 @@ def list_files():
 @login_required
 def folder_files(folder):
     user_id = session["user_id"]
-    # folder = re.sub(r"[^\w\-]", "", folder)  # Sanitize folder name
     logging.info(folder)
     try:
         conn = db_pool.get_connection()

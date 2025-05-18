@@ -12,10 +12,8 @@ import logging
 from dotenv import load_dotenv
 import shutil
 
-# Load environment variables
 load_dotenv()
 
-# Set up logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -92,12 +90,10 @@ def extract_content(file_path):
         return "", []
 
 
-# Create temporary training directory
 if os.path.exists(TEMP_DIR):
     shutil.rmtree(TEMP_DIR)
 os.makedirs(TEMP_DIR)
 
-# Connect to MySQL
 try:
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
@@ -105,11 +101,9 @@ except Exception as e:
     logging.error(f"Failed to connect to MySQL: {e}")
     exit(1)
 
-# Clear existing pretrained data
-cursor.execute("DELETE FROM files WHERE user_id IS NULL")
-conn.commit()
+# cursor.execute("DELETE FROM files WHERE user_id IS NULL")
+# conn.commit()
 
-# Walk through dataset
 for folder_name in os.listdir(DATASET_DIR):
     folder_path = os.path.join(DATASET_DIR, folder_name)
     if os.path.isdir(folder_path):
@@ -143,7 +137,6 @@ for folder_name in os.listdir(DATASET_DIR):
 cursor.close()
 conn.close()
 
-# Clean up temporary directory
 shutil.rmtree(TEMP_DIR)
 
 logging.info(f"Collected {len(texts)} documents from {len(set(labels))} categories.")
@@ -152,7 +145,6 @@ if not texts:
     logging.error("No documents processed. Cannot train model.")
     exit(1)
 
-# Train model
 try:
     vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
     X = vectorizer.fit_transform(texts)

@@ -63,7 +63,6 @@
         try {
             const response = JSON.parse(xhr.responseText);
             if (xhr.status === 200 && response.message) {
-                // HX-Redirect will handle the redirect
                 return;
             }
             if (xhr.status === 400 && response.error) {
