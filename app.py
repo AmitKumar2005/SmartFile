@@ -50,6 +50,7 @@ logging.basicConfig(
 load_dotenv()
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB limit
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if not app.secret_key:
     logging.error("FLASK_SECRET_KEY is not set")
