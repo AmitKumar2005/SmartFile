@@ -591,6 +591,28 @@ def extract():
         os.remove(temp_path)
         return jsonify({"error": f"Failed to move file: {str(e)}"}), 500
 
+    # Clean and serialize tables data
+    tables_data = result.get("tables", [])
+    try:
+        # Ensure all table cells are strings and handle non-UTF-8 characters
+        cleaned_tables = []
+        for table in tables_data:
+            cleaned_table = {
+                "page": table["page"],
+                "table": [
+                    [
+                        str(cell or "").encode("utf-8", errors="ignore").decode("utf-8")
+                        for cell in row
+                    ]
+                    for row in table["table"]
+                ],
+            }
+            cleaned_tables.append(cleaned_table)
+        tables_json = json.dumps(cleaned_tables, ensure_ascii=False)
+    except Exception as e:
+        logging.error(f"Failed to serialize tables: {e}")
+        tables_json = json.dumps([])  # Fallback to empty list
+
     if len(combined_text.encode("utf-8")) > MAX_TEXT_LENGTH:
         logging.warning(
             f"Text for {sanitized_filename} exceeds {MAX_TEXT_LENGTH} bytes, truncating."
@@ -609,7 +631,7 @@ def extract():
                 sanitized_filename,
                 predicted_folder,
                 combined_text,
-                json.dumps(result.get("tables", [])),
+                tables_json,  # Use cleaned JSON string
                 final_path,
             ),
         )
@@ -620,7 +642,7 @@ def extract():
     except mysql.connector.Error as e:
         logging.error(f"Failed to save file {sanitized_filename} to database: {e}")
         os.remove(final_path)
-        return jsonify({"error": "Failed to save file metadata"}), 500
+        return jsonify({"error": f"Failed to save file metadata: {str(e)}"}), 500
 
     logging.info(f"Extraction successful. Predicted folder: {predicted_folder}")
     return jsonify(
@@ -629,7 +651,7 @@ def extract():
             "filename": sanitized_filename,
             "predicted_folder": predicted_folder,
             "text": combined_text,
-            "tables": result.get("tables", []),
+            "tables": cleaned_tables,  # Return cleaned tables
         }
     )
 
