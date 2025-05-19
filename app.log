@@ -3116,3 +3116,49 @@
 2025-05-18 19:11:23,502 - INFO - Index route - Session: <SecureCookieSession {'_permanent': True}>, Logged in: False, Username: None
 2025-05-18 19:11:23,504 - INFO - 127.0.0.1 - - [18/May/2025 19:11:23] "GET / HTTP/1.1" 200 -
 2025-05-18 19:11:23,731 - INFO - 127.0.0.1 - - [18/May/2025 19:11:23] "[33mGET /static/favicon.ico HTTP/1.1[0m" 404 -
+2025-05-19 12:12:45,554 - INFO - MySQL connection pool initialized
+2025-05-19 12:13:00,929 - INFO - Model and vectorizer loaded successfully
+2025-05-19 12:13:00,975 - INFO - Starting Flask application
+2025-05-19 12:13:01,051 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.60:5000
+2025-05-19 12:13:01,053 - INFO - [33mPress CTRL+C to quit[0m
+2025-05-19 12:13:01,056 - INFO -  * Restarting with stat
+2025-05-19 12:13:05,490 - INFO - MySQL connection pool initialized
+2025-05-19 12:13:09,695 - INFO - Model and vectorizer loaded successfully
+2025-05-19 12:13:09,717 - INFO - Starting Flask application
+2025-05-19 12:13:09,785 - WARNING -  * Debugger is active!
+2025-05-19 12:13:09,792 - INFO -  * Debugger PIN: 885-304-721
+2025-05-19 12:13:09,876 - INFO - Index route - Session: <SecureCookieSession {}>, Logged in: False, Username: None
+2025-05-19 12:13:10,244 - INFO - 127.0.0.1 - - [19/May/2025 12:13:10] "GET / HTTP/1.1" 200 -
+2025-05-19 12:13:10,776 - INFO - 127.0.0.1 - - [19/May/2025 12:13:10] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+2025-05-19 12:13:11,622 - INFO - 127.0.0.1 - - [19/May/2025 12:13:11] "[33mGET /static/favicon.ico HTTP/1.1[0m" 404 -
+2025-05-19 12:13:11,674 - INFO - 127.0.0.1 - - [19/May/2025 12:13:11] "[33mGET /static/favicon.ico HTTP/1.1[0m" 404 -
+2025-05-19 12:13:14,556 - INFO - 127.0.0.1 - - [19/May/2025 12:13:14] "GET /login HTTP/1.1" 200 -
+2025-05-19 12:13:14,669 - INFO - 127.0.0.1 - - [19/May/2025 12:13:14] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+2025-05-19 12:13:15,222 - INFO - 127.0.0.1 - - [19/May/2025 12:13:15] "[33mGET /static/favicon.ico HTTP/1.1[0m" 404 -
+2025-05-19 12:13:26,518 - INFO - Login attempt with data: ImmutableMultiDict([('email', 'amitsingh2816@gmail.com'), ('password', 'amit1234')])
+2025-05-19 12:13:27,009 - INFO - Login successful for user_id: 2, Session: <SecureCookieSession {'user_id': 2, '_permanent': True, 'csrf_token': 'a3fecde884fb3f0dcafdc911882a5973'}>
+2025-05-19 12:13:27,013 - INFO - 127.0.0.1 - - [19/May/2025 12:13:27] "POST /login HTTP/1.1" 200 -
+2025-05-19 12:13:27,066 - INFO - Index route - Session: <SecureCookieSession {'_permanent': True, 'csrf_token': 'a3fecde884fb3f0dcafdc911882a5973', 'user_id': 2}>, Logged in: True, Username: amitsingh2816@gmail.com
+2025-05-19 12:13:27,069 - INFO - 127.0.0.1 - - [19/May/2025 12:13:27] "GET / HTTP/1.1" 200 -
+2025-05-19 12:13:27,148 - INFO - 127.0.0.1 - - [19/May/2025 12:13:27] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+2025-05-19 12:13:27,441 - INFO - 127.0.0.1 - - [19/May/2025 12:13:27] "[33mGET /static/favicon.ico HTTP/1.1[0m" 404 -
+2025-05-19 12:13:29,202 - INFO - 127.0.0.1 - - [19/May/2025 12:13:29] "GET /upload HTTP/1.1" 200 -
+2025-05-19 12:13:29,273 - INFO - 127.0.0.1 - - [19/May/2025 12:13:29] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+2025-05-19 12:13:29,951 - INFO - 127.0.0.1 - - [19/May/2025 12:13:29] "[33mGET /static/favicon.ico HTTP/1.1[0m" 404 -
+2025-05-19 12:13:29,994 - INFO - 127.0.0.1 - - [19/May/2025 12:13:29] "GET /list_files HTTP/1.1" 200 -
+2025-05-19 12:13:37,263 - INFO - File saved temporarily: Uploads\user_2\doc1.pdf
+2025-05-19 12:13:40,576 - ERROR - Error converting PDF to images: Unable to get page count. Is poppler installed and in PATH?
+2025-05-19 12:13:40,682 - INFO - Moving file from Uploads\user_2\doc1.pdf to Uploads\user_2\Web Technology\doc1.pdf
+2025-05-19 12:13:40,684 - INFO - File successfully moved to Uploads\user_2\Web Technology\doc1.pdf
+2025-05-19 12:13:40,981 - INFO - Extraction successful. Predicted folder: Web Technology
+2025-05-19 12:13:40,987 - INFO - 127.0.0.1 - - [19/May/2025 12:13:40] "POST /extract HTTP/1.1" 200 -
+2025-05-19 12:20:01,027 - INFO -  * Detected change in 'c:\\Users\\admin\\.vscode\\AgainFile\\app.py', reloading
+2025-05-19 12:20:05,591 - INFO -  * Restarting with stat
+2025-05-19 12:20:13,752 - INFO - MySQL connection pool initialized
+2025-05-19 12:20:17,635 - INFO - Model and vectorizer loaded successfully
+2025-05-19 12:20:17,650 - INFO - Starting Flask application
+2025-05-19 12:20:17,674 - WARNING -  * Debugger is active!
+2025-05-19 12:20:17,680 - INFO -  * Debugger PIN: 885-304-721

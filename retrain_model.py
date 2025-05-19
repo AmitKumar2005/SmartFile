@@ -7,22 +7,25 @@ from dotenv import load_dotenv
 import os
 import shutil
 
-# Load environment variables
 load_dotenv()
 
-# Set up logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT", "4000"),
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
     "database": os.getenv("DB_NAME"),
+    "ssl_ca": os.path.join(os.path.dirname(__file__), "tidb-ca.pem"),
+    "ssl_verify_cert": True,
+    "ssl_verify_identity": True,
+    "use_pure": True,
 }
 
-TEMP_DIR = "TempTraining"
+TEMP_DIR = "/tmp/TempTraining"
 
 
 def extract_content_from_pdf(file_path):
@@ -94,7 +97,6 @@ def retrain_model():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
-        # Get feedback data
         cursor.execute(
             """
             SELECT f.file_id, f.corrected_folder, fi.file_path
@@ -111,16 +113,13 @@ def retrain_model():
             logging.info("No feedback data to retrain model")
             return
 
-        # Create temporary training directory
         if os.path.exists(TEMP_DIR):
             shutil.rmtree(TEMP_DIR)
         os.makedirs(TEMP_DIR)
 
         texts = []
         labels = []
-        # Process feedback data
         for file_id, corrected_folder, file_path in feedback_data:
-            # Copy file to temporary directory
             temp_folder = os.path.join(TEMP_DIR, corrected_folder)
             os.makedirs(temp_folder, exist_ok=True)
             temp_path = os.path.join(temp_folder, os.path.basename(file_path))
@@ -130,19 +129,16 @@ def retrain_model():
                 texts.append(text)
                 labels.append(corrected_folder)
 
-        # Clean up temporary directory
         shutil.rmtree(TEMP_DIR)
 
         if not texts:
             logging.info("No valid feedback data to retrain model")
             return
 
-        # Retrain model
         vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
         X = vectorizer.fit_transform(texts)
         model = LogisticRegression(max_iter=1000, C=1.0)
         model.fit(X, labels)
-        # Save updated model
         with open("model.pkl", "wb") as f:
             pickle.dump(model, f)
         with open("vectorizer.pkl", "wb") as f:

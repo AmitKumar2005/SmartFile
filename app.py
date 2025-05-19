@@ -23,7 +23,6 @@ import base64
 import pickle
 import json
 import mysql.connector
-from mysql.connector import pooling
 from docx import Document
 from pptx import Presentation
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -55,14 +54,14 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if not app.secret_key:
     logging.error("FLASK_SECRET_KEY is not set")
     raise ValueError("FLASK_SECRET_KEY must be set in .env")
-app.permanent_session_lifetime = timedelta(minutes=30)  # Session timeout
+app.permanent_session_lifetime = timedelta(minutes=30)
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 CORS(
     app,
     resources={
-        r"/*": {"origins": os.getenv("ALLOWED_ORIGINS", "*")},
+        r"/*": {"origins": os.getenv("ALLOWED_ORIGINS", "*").split(",")},
     },
 )
 csrf = CSRFProtect(app)
@@ -72,15 +71,23 @@ limiter = Limiter(
 )
 
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT", "4000"),
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
     "database": os.getenv("DB_NAME"),
-    "pool_name": "mypool",
-    "pool_size": 5,
+    "ssl_ca": os.path.join(os.path.dirname(__file__), "tidb-ca.pem"),
+    "ssl_verify_cert": True,
+    "ssl_verify_identity": True,
+    "use_pure": True,
 }
 for key, value in DB_CONFIG.items():
-    if not value and key != "pool_name" and key != "pool_size":
+    if not value and key not in [
+        "ssl_ca",
+        "ssl_verify_cert",
+        "ssl_verify_identity",
+        "use_pure",
+    ]:
         logging.error(f"Missing DB_CONFIG: {key}")
         raise ValueError(f"Missing DB_CONFIG: {key}")
 MAX_TEXT_LENGTH = 1_000_000
@@ -90,22 +97,17 @@ ALLOWED_MIMETYPES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
 }
 
-try:
-    db_pool = pooling.MySQLConnectionPool(**DB_CONFIG)
-    logging.info("MySQL connection pool initialized")
-except Exception as e:
-    logging.error(f"MySQL connection pool initialization failed: {e}")
-    raise
+
+def get_db_connection():
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        return conn
+    except Exception as e:
+        logging.error(f"Database connection failed: {e}")
+        raise
+
 
 try:
-    if not os.path.exists("model.pkl"):
-        raise FileNotFoundError(
-            "model.pkl not found. Run train_model.py to generate it."
-        )
-    if not os.path.exists("vectorizer.pkl"):
-        raise FileNotFoundError(
-            "vectorizer.pkl not found. Run train_model.py to generate it."
-        )
     with open("model.pkl", "rb") as f:
         model = pickle.load(f)
     with open("vectorizer.pkl", "rb") as f:
@@ -128,10 +130,9 @@ def login_required(f):
 
 
 def get_email():
-    """Retrieve email for logged-in user."""
     if "user_id" in session:
         try:
-            conn = db_pool.get_connection()
+            conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT email FROM users WHERE id = %s", (session["user_id"],)
@@ -147,38 +148,31 @@ def get_email():
 
 
 def validate_email(email):
-    """Validate email format."""
     pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     return re.match(pattern, email) is not None
 
 
 def sanitize_filename(filename):
-    """Sanitize filename to prevent path traversal."""
     return re.sub(r"[^\w\.-]", "_", os.path.basename(filename))
 
 
 def validate_file(file):
-    """Validate file type and size."""
     if not file:
         return False, "No file provided"
     filename = file.filename
     if not filename:
         return False, "Empty filename"
-
     ext = os.path.splitext(filename)[1].lower()
     if ext not in [".pdf", ".docx", ".pptx"]:
         return False, "Invalid file extension"
-
     mime_type, _ = mimetypes.guess_type(filename)
     if mime_type not in ALLOWED_MIMETYPES:
         return False, "Invalid file type"
-
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
     if file_size > 10 * 1024 * 1024:
         return False, "File size exceeds 10MB limit"
-
     return True, ""
 
 
@@ -254,7 +248,7 @@ def extract_everything_from_pdf(pdf_path):
                     base_image = doc.extract_image(xref)
                     image_bytes = base_image["image"]
                     ext = base_image["ext"]
-                    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+                    image_b64 = base_image["image"].decode("utf-8")
                     extracted_images.append(
                         {
                             "page": page_index + 1,
@@ -435,7 +429,7 @@ def register():
         logging.error("Password too short")
         return jsonify({"error": "Password must be at least 8 characters"}), 400
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
         if cursor.fetchone():
@@ -482,7 +476,7 @@ def login():
     email = data["email"].strip()
     password = data["password"]
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id, password FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
@@ -526,113 +520,6 @@ def logout():
     return response
 
 
-# @app.route("/extract", methods=["POST"])
-# @login_required
-# @limiter.limit("5 per minute")
-# @csrf.exempt
-# def extract():
-#     if "file" not in request.files:
-#         logging.error("No file uploaded")
-#         return jsonify({"error": "No file uploaded"}), 400
-#     file = request.files["file"]
-#     is_valid, error_message = validate_file(file)
-#     if not is_valid:
-#         logging.error(error_message)
-#         return jsonify({"error": error_message}), 400
-
-#     user_id = session["user_id"]
-#     sanitized_filename = sanitize_filename(file.filename)
-
-#     # Check if file already exists for this user
-#     try:
-#         conn = db_pool.get_connection()
-#         cursor = conn.cursor()
-#         cursor.execute(
-#             "SELECT id FROM files WHERE user_id = %s AND filename = %s",
-#             (user_id, sanitized_filename),
-#         )
-#         if cursor.fetchone():
-#             cursor.close()
-#             conn.close()
-#             logging.info(f"File {sanitized_filename} already exists for user {user_id}")
-#             return jsonify({"error": "File already available"}), 200
-#         cursor.close()
-#         conn.close()
-#     except Exception as e:
-#         logging.error(f"Error checking for existing file: {e}")
-#         return jsonify({"error": "Failed to check file existence"}), 500
-
-#     user_dir = os.path.join("Uploads", f"user_{user_id}")
-#     os.makedirs(user_dir, exist_ok=True)
-#     temp_path = os.path.join(user_dir, sanitized_filename)
-#     file.save(temp_path)
-#     logging.info(f"File saved temporarily: {temp_path}")
-
-#     result = extract_content(temp_path)
-#     if "error" in result:
-#         logging.error(f"Extraction failed: {result['error']}")
-#         os.remove(temp_path)
-#         return jsonify({"error": result["error"]}), 400
-
-#     combined_text = result.get("combined_text", "")
-#     predicted_folder = "Unknown"
-#     if combined_text.strip():
-#         try:
-#             X = vectorizer.transform([combined_text])
-#             predicted_folder = model.predict(X)[0]
-#             result["predicted_folder"] = predicted_folder
-#         except Exception as e:
-#             logging.error(f"Prediction failed: {e}")
-
-#     folder_dir = os.path.join(user_dir, predicted_folder)
-#     os.makedirs(folder_dir, exist_ok=True)
-#     final_path = os.path.join(folder_dir, sanitized_filename)
-#     os.rename(temp_path, final_path)
-#     logging.info(f"File moved to: {final_path}")
-
-#     if len(combined_text.encode("utf-8")) > MAX_TEXT_LENGTH:
-#         logging.warning(
-#             f"Text for {sanitized_filename} exceeds {MAX_TEXT_LENGTH} bytes, truncating."
-#         )
-#         combined_text = combined_text.encode("utf-8")[:MAX_TEXT_LENGTH].decode(
-#             "utf-8", errors="ignore"
-#         )
-
-#     try:
-#         conn = db_pool.get_connection()
-#         cursor = conn.cursor()
-#         cursor.execute(
-#             "INSERT INTO files (user_id, filename, folder, text, tables, file_path) VALUES (%s, %s, %s, %s, %s, %s)",
-#             (
-#                 user_id,
-#                 sanitized_filename,
-#                 predicted_folder,
-#                 combined_text,
-#                 json.dumps(result.get("tables", [])),
-#                 final_path,
-#             ),
-#         )
-#         file_id = cursor.lastrowid
-#         conn.commit()
-#         cursor.close()
-#         conn.close()
-#     except mysql.connector.Error as e:
-#         logging.error(f"Failed to save file {sanitized_filename} to database: {e}")
-#         os.remove(final_path)
-#         return jsonify({"error": "Failed to save file metadata"}), 500
-
-#     logging.info(f"Extraction successful. Predicted folder: {predicted_folder}")
-#     return jsonify(
-#         {
-#             "file_id": file_id,
-#             "filename": sanitized_filename,
-#             "predicted_folder": predicted_folder,
-#             "text": combined_text,
-#             "tables": result.get("tables", []),
-#         }
-#     )
-
-
 @app.route("/extract", methods=["POST"])
 @login_required
 @limiter.limit("5 per minute")
@@ -651,7 +538,7 @@ def extract():
     sanitized_filename = sanitize_filename(file.filename)
 
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id FROM files WHERE user_id = %s AND filename = %s",
@@ -668,7 +555,7 @@ def extract():
         logging.error(f"Error checking for existing file: {e}")
         return jsonify({"error": "Failed to check file existence"}), 500
 
-    user_dir = os.path.join("Uploads", f"user_{user_id}")
+    user_dir = os.path.join("/tmp", f"user_{user_id}")
     os.makedirs(user_dir, exist_ok=True)
     temp_path = os.path.join(user_dir, sanitized_filename)
     file.save(temp_path)
@@ -701,7 +588,7 @@ def extract():
         logging.info(f"File successfully moved to {final_path}")
     except Exception as e:
         logging.error(f"Failed to move file to {final_path}: {e}")
-        os.remove(temp_path)  # Clean up temp file
+        os.remove(temp_path)
         return jsonify({"error": f"Failed to move file: {str(e)}"}), 500
 
     if len(combined_text.encode("utf-8")) > MAX_TEXT_LENGTH:
@@ -713,7 +600,7 @@ def extract():
         )
 
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO files (user_id, filename, folder, text, tables, file_path) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -762,11 +649,11 @@ def search():
         return "<div class='error-message'>Empty query</div>", 400
     user_id = session["user_id"]
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, filename, folder, text FROM files WHERE user_id = %s AND MATCH(text) AGAINST(%s IN BOOLEAN MODE) LIMIT 20",
-            (user_id, query),
+            "SELECT id, filename, folder, text FROM files WHERE user_id = %s AND text LIKE %s LIMIT 20",
+            (user_id, f"%{query}%"),
         )
         results = [
             {
@@ -807,7 +694,7 @@ def search():
 def list_files():
     user_id = session["user_id"]
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT DISTINCT folder FROM files WHERE user_id = %s ORDER BY folder",
@@ -844,7 +731,7 @@ def folder_files(folder):
     user_id = session["user_id"]
     logging.info(folder)
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, filename, folder FROM files WHERE user_id = %s AND folder = %s ORDER BY filename",
@@ -890,7 +777,7 @@ def folder_files(folder):
 def view_file(file_id):
     user_id = session["user_id"]
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT filename, file_path, text, tables FROM files WHERE id = %s AND user_id = %s",
@@ -943,7 +830,7 @@ def feedback():
     corrected_folder = data.get("corrected_folder")
     user_id = session["user_id"]
     try:
-        conn = db_pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT folder, file_path FROM files WHERE id = %s AND user_id = %s",
