@@ -147,6 +147,16 @@ def get_email():
     return None
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico")
+
+
+@app.route("/static/favicon.ico")
+def static_favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico")
+
+
 def validate_email(email):
     pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     return re.match(pattern, email) is not None
@@ -188,22 +198,19 @@ def extract_everything_from_pdf(pdf_path):
             doc.close()
             logging.error("PDF is encrypted")
             return {"error": "PDF is encrypted, cannot process"}
+        metadata["page_count"] = len(doc)
         doc.close()
     except Exception as e:
         logging.error(f"Invalid PDF: {e}")
         return {"error": f"Invalid PDF: {str(e)}"}
     try:
         with pdfplumber.open(pdf_path) as pdf:
-            metadata["page_count"] = len(pdf.pages)
             metadata["pdf_metadata"] = pdf.metadata or {}
-            for i, page in enumerate(pdf.pages):
+            for i, page in enumerate(pdf.pages[:5]):  # Limit to 5 pages
                 try:
                     page_text = page.extract_text() or ""
                     if page_text.strip():
                         full_text += f"\n--- Page {i+1} ---\n{page_text}"
-                    else:
-                        logging.info(f"Page {i+1} is likely scanned, will use OCR")
-                        ocr_text += f"\n--- OCR Page {i+1} ---\n"
                     tables = page.extract_tables()
                     for table in tables:
                         cleaned_table = [
@@ -220,60 +227,10 @@ def extract_everything_from_pdf(pdf_path):
     except Exception as e:
         logging.error(f"Error with pdfplumber: {e}")
         return {"error": f"pdfplumber error: {str(e)}"}
-    try:
-        images = convert_from_path(pdf_path, dpi=200)
-        for i, img in enumerate(images):
-            if (
-                not full_text.split(f"--- Page {i+1} ---")[1].strip()
-                if f"--- Page {i+1} ---" in full_text
-                else True
-            ):
-                try:
-                    img = img.convert("L")
-                    ocr_result = pytesseract.image_to_string(img, config="--psm 6")
-                    ocr_text += ocr_result.strip() + "\n"
-                except Exception as e:
-                    logging.error(f"OCR error on page {i+1}: {e}")
-                finally:
-                    img.close()
-    except Exception as e:
-        logging.error(f"Error converting PDF to images: {e}")
-    try:
-        doc = fitz.open(pdf_path)
-        for page_index in range(len(doc)):
-            image_list = doc.get_page_images(page_index)
-            for img_index, img in enumerate(image_list):
-                try:
-                    xref = img[0]
-                    base_image = doc.extract_image(xref)
-                    image_bytes = base_image["image"]
-                    ext = base_image["ext"]
-                    image_b64 = base_image["image"].decode("utf-8")
-                    extracted_images.append(
-                        {
-                            "page": page_index + 1,
-                            "img_index": img_index + 1,
-                            "ext": ext,
-                            "data": image_b64,
-                        }
-                    )
-                except Exception as e:
-                    logging.error(
-                        f"Error extracting image {img_index+1} on page {page_index+1}: {e}"
-                    )
-        doc.close()
-    except Exception as e:
-        logging.error(f"Error with PyMuPDF: {e}")
     full_text = "\n".join(
         line.strip() for line in full_text.splitlines() if line.strip()
     )
-    ocr_text = "\n".join(line.strip() for line in ocr_text.splitlines() if line.strip())
-    table_text = "\n".join(
-        "\t".join(cell for cell in row)
-        for table in extracted_tables
-        for row in table["table"]
-    )
-    combined_text = f"{full_text}\n{ocr_text}\n{table_text}".strip()
+    combined_text = f"{full_text}\n{ocr_text}".strip()
     return {
         "text": full_text,
         "ocr_text": ocr_text,
@@ -598,7 +555,7 @@ def extract():
         cleaned_tables = []
         for table in tables_data:
             cleaned_table = {
-                "page": table["page"],
+                "page": int(table["page"]),  # Ensure page is an integer
                 "table": [
                     [
                         str(cell or "").encode("utf-8", errors="ignore").decode("utf-8")
