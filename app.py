@@ -147,16 +147,6 @@ def get_email():
     return None
 
 
-@app.route("/favicon.ico")
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico")
-
-
-@app.route("/static/favicon.ico")
-def static_favicon():
-    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico")
-
-
 def validate_email(email):
     pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     return re.match(pattern, email) is not None
@@ -292,11 +282,6 @@ def extract_content(file_path):
 
 @app.route("/favicon.ico")
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico")
-
-
-@app.route("/static/favicon.ico")
-def static_favicon():
     return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico")
 
 
@@ -551,11 +536,10 @@ def extract():
     # Clean and serialize tables data
     tables_data = result.get("tables", [])
     try:
-        # Ensure all table cells are strings and handle non-UTF-8 characters
         cleaned_tables = []
         for table in tables_data:
             cleaned_table = {
-                "page": int(table["page"]),  # Ensure page is an integer
+                "page": int(table["page"]),
                 "table": [
                     [
                         str(cell or "").encode("utf-8", errors="ignore").decode("utf-8")
@@ -588,7 +572,7 @@ def extract():
                 sanitized_filename,
                 predicted_folder,
                 combined_text,
-                tables_json,  # Use cleaned JSON string
+                tables_json,
                 final_path,
             ),
         )
@@ -608,7 +592,7 @@ def extract():
             "filename": sanitized_filename,
             "predicted_folder": predicted_folder,
             "text": combined_text,
-            "tables": cleaned_tables,  # Return cleaned tables
+            "tables": cleaned_tables,
         }
     )
 
