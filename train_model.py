@@ -52,7 +52,8 @@ def extract_content_from_pdf(file_path):
                         )
     except Exception as e:
         logging.error(f"Failed to read PDF {file_path}: {e}")
-    return text.strip(), tables
+    # Convert text to lowercase before returning
+    return text.lower().strip(), tables
 
 
 def extract_text_from_docx(file_path):
@@ -62,7 +63,8 @@ def extract_text_from_docx(file_path):
         text = "\n".join(para.text for para in doc.paragraphs if para.text.strip())
     except Exception as e:
         logging.error(f"Failed to read DOCX {file_path}: {e}")
-    return text.strip(), []
+    # Convert text to lowercase before returning
+    return text.lower().strip(), []
 
 
 def extract_text_from_pptx(file_path):
@@ -75,7 +77,8 @@ def extract_text_from_pptx(file_path):
                     text.append(shape.text)
     except Exception as e:
         logging.error(f"Failed to read PPTX {file_path}: {e}")
-    return "\n".join(text).strip(), []
+    # Convert text to lowercase before joining and returning
+    return "\n".join(text).lower().strip(), []
 
 
 def extract_content(file_path):

@@ -219,7 +219,8 @@ def extract_everything_from_pdf(pdf_path):
         return {"error": f"pdfplumber error: {str(e)}"}
     full_text = "\n".join(
         line.strip() for line in full_text.splitlines() if line.strip()
-    )
+    ).lower()  # Convert to lowercase
+    ocr_text = ocr_text.lower()  # Convert OCR text to lowercase
     combined_text = f"{full_text}\n{ocr_text}".strip()
     return {
         "text": full_text,
@@ -239,6 +240,7 @@ def extract_text_from_docx(file_path):
     except Exception as e:
         logging.error(f"Failed to read DOCX {file_path}: {e}")
         return {"error": f"DOCX error: {str(e)}"}
+    text = text.lower()  # Convert to lowercase
     return {
         "text": text,
         "combined_text": text,
@@ -259,7 +261,7 @@ def extract_text_from_pptx(file_path):
     except Exception as e:
         logging.error(f"Failed to read PPTX {file_path}: {e}")
         return {"error": f"PPTX error: {str(e)}"}
-    combined_text = "\n".join(text).strip()
+    combined_text = "\n".join(text).lower().strip()  # Convert to lowercase
     return {
         "text": combined_text,
         "combined_text": combined_text,
@@ -608,7 +610,7 @@ def search():
     if not data or "query" not in data:
         logging.error("No query provided")
         return "<div class='error-message'>No query provided</div>", 400
-    query = data["query"].strip()[:255]
+    query = data["query"].strip()[:255].lower()  # Convert query to lowercase
     if not query:
         logging.error("Empty query")
         return "<div class='error-message'>Empty query</div>", 400
