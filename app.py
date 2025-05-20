@@ -470,6 +470,7 @@ def extract():
     if "file" not in request.files:
         logging.error("No file uploaded")
         return jsonify({"error": "No file uploaded"}), 400
+
     file = request.files["file"]
     is_valid, error_message = validate_file(file)
     if not is_valid:
@@ -514,7 +515,9 @@ def extract():
     if combined_text.strip():
         try:
             X = vectorizer.transform([combined_text])
-            predicted_folder = model.predict(X)[0]
+            predicted_folder = str(
+                model.predict(X)[0]
+            )  # Convert to str to fix MySQL type error
             result["predicted_folder"] = predicted_folder
         except Exception as e:
             logging.error(f"Prediction failed: {e}")
@@ -533,7 +536,6 @@ def extract():
         os.remove(temp_path)
         return jsonify({"error": f"Failed to move file: {str(e)}"}), 500
 
-    # Clean and serialize tables data
     tables_data = result.get("tables", [])
     try:
         cleaned_tables = []
@@ -552,7 +554,7 @@ def extract():
         tables_json = json.dumps(cleaned_tables, ensure_ascii=False)
     except Exception as e:
         logging.error(f"Failed to serialize tables: {e}")
-        tables_json = json.dumps([])  # Fallback to empty list
+        tables_json = json.dumps([])
 
     if len(combined_text.encode("utf-8")) > MAX_TEXT_LENGTH:
         logging.warning(
