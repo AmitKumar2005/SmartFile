@@ -1,45 +1,24 @@
-/* styles.css */
-
-/* Color and font variables */
 :root {
     --primary-blue: #1e3a8a;
-    /* Darker blue for better contrast */
     --primary-blue-hover: #1e40af;
-    /* Slightly lighter for hover */
     --accent-orange: #f97316;
-    /* Accent for highlights */
     --gray-100: #fafafa;
-    /* Lighter background */
     --gray-200: #e5e7eb;
-    /* Borders */
     --gray-300: #d1d5db;
-    /* Input borders */
     --gray-600: #4b5563;
-    /* Secondary text */
     --gray-700: #374151;
-    /* Primary text */
     --gray-800: #1f2937;
-    /* Footer */
     --gray-50: #f9fafb;
-    /* File list background */
     --white: #ffffff;
-    /* Cards */
     --red-500: #ef4444;
-    /* Errors */
     --green-500: #10b981;
-    /* Success */
     --green-600: #059669;
-    /* Success hover */
     --blue-500: #3b82f6;
-    /* Buttons */
     --blue-600: #2563eb;
-    /* Button hover */
     --blue-700: #1d4ed8;
-    /* Secondary button hover */
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -60,14 +39,12 @@ body {
     color: var(--gray-700);
 }
 
-/* Container */
 .container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 1rem;
 }
 
-/* Navigation */
 .nav {
     background: linear-gradient(to bottom, var(--primary-blue), var(--primary-blue-hover));
     color: var(--white);
@@ -122,11 +99,9 @@ body {
     cursor: pointer;
 }
 
-/* Content container */
 .container.content {
     margin-top: 0.65rem;
     min-height: calc(100vh - 8rem);
-    /* Account for nav and footer */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -145,7 +120,6 @@ body {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Card */
 .card {
     background-color: var(--white);
     padding: 1.5rem;
@@ -161,7 +135,6 @@ body {
     max-width: 32rem;
 }
 
-/* Headings */
 h1 {
     font-size: 2rem;
     font-weight: 800;
@@ -183,7 +156,6 @@ h3 {
     margin-bottom: 0.5rem;
 }
 
-/* Form elements */
 .form-group {
     margin-bottom: 1.25rem;
 }
@@ -225,7 +197,6 @@ h3 {
     background-color: var(--white);
 }
 
-/* Buttons */
 .button {
     display: inline-block;
     padding: 0.75rem 1.5rem;
@@ -283,7 +254,6 @@ h3 {
     font-size: 0.9rem;
 }
 
-/* Messages */
 .error-message {
     color: var(--red-500);
     font-size: 0.85rem;
@@ -346,7 +316,6 @@ h3 {
     border-radius: 0.25rem;
 }
 
-/* Links */
 .link {
     text-decoration: none;
     transition: color 0.2s ease;
@@ -357,7 +326,6 @@ h3 {
     text-decoration: underline;
 }
 
-/* Footer */
 .footer {
     background-color: var(--gray-800);
     color: var(--white);
@@ -367,7 +335,6 @@ h3 {
     margin-top: auto;
 }
 
-/* Search and upload specific */
 .search-form {
     display: flex;
     gap: 0.5rem;
@@ -378,9 +345,7 @@ h3 {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    /* Increased gap for better spacing */
     padding: 0;
-    /* Removed padding for cleaner layout */
 }
 
 .search-result-card {
@@ -411,7 +376,6 @@ h3 {
 .file-list-container {
     background-color: #e5e7eb;
     padding: 1.5rem;
-    /* Increased padding for a roomier feel */
     border-radius: 0.5rem;
     margin-top: 1rem;
 }
@@ -420,23 +384,19 @@ h3 {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    /* Increased gap for better spacing */
 }
 
 .file-list-item {
     background: linear-gradient(-135deg, var(--white), #1d4ed8);
-    /* Subtle gradient for depth */
     padding: 1.25rem;
     border-radius: 0.5rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    /* transition: transform 0.2s ease, box-shadow 0.2s ease; */
     position: relative;
     overflow: hidden;
 }
 
 .file-list-item::before {
-    /* Folder icon using Unicode */
     font-size: 1.5rem;
     position: absolute;
     top: 0.75rem;
@@ -455,7 +415,6 @@ h3 {
     font-weight: 600;
     color: var(--gray-800);
     margin-left: 2.5rem;
-    /* Offset for icon */
     margin-bottom: 0.25rem;
 }
 
@@ -463,10 +422,8 @@ h3 {
     font-size: 0.9rem;
     color: var(--gray-600);
     margin-left: 2.5rem;
-    /* Offset for icon */
 }
 
-/* Flex utilities */
 .flex-between {
     display: flex;
     justify-content: space-between;
@@ -477,7 +434,6 @@ hr {
     padding: 1;
 }
 
-/* Text utilities */
 .text-center {
     text-align: center;
 }
@@ -520,7 +476,6 @@ hr {
     margin-left: 1rem;
 }
 
-/* Responsive design */
 @media (max-width: 640px) {
     .container {
         padding: 0.75rem;
@@ -592,7 +547,6 @@ hr {
     }
 }
 
-/* Table styles for view_file */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -605,7 +559,6 @@ td {
     padding: 0.75rem;
 }
 
-/* Preformatted text for extracted text */
 pre {
     background-color: var(--gray-100);
     padding: 1.5rem;
@@ -614,7 +567,6 @@ pre {
     margin-bottom: 1.5rem;
 }
 
-/* List styles for folder_files */
 ul.list {
     list-style-type: disc;
     padding-left: 1.25rem;

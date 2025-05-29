@@ -219,8 +219,8 @@ def extract_everything_from_pdf(pdf_path):
         return {"error": f"pdfplumber error: {str(e)}"}
     full_text = "\n".join(
         line.strip() for line in full_text.splitlines() if line.strip()
-    ).lower()  # Convert to lowercase
-    ocr_text = ocr_text.lower()  # Convert OCR text to lowercase
+    ).lower()
+    ocr_text = ocr_text.lower()
     combined_text = f"{full_text}\n{ocr_text}".strip()
     return {
         "text": full_text,
@@ -240,7 +240,7 @@ def extract_text_from_docx(file_path):
     except Exception as e:
         logging.error(f"Failed to read DOCX {file_path}: {e}")
         return {"error": f"DOCX error: {str(e)}"}
-    text = text.lower()  # Convert to lowercase
+    text = text.lower()
     return {
         "text": text,
         "combined_text": text,
@@ -517,9 +517,7 @@ def extract():
     if combined_text.strip():
         try:
             X = vectorizer.transform([combined_text])
-            predicted_folder = str(
-                model.predict(X)[0]
-            )  # Convert to str to fix MySQL type error
+            predicted_folder = str(model.predict(X)[0])
             result["predicted_folder"] = predicted_folder
         except Exception as e:
             logging.error(f"Prediction failed: {e}")
@@ -610,7 +608,7 @@ def search():
     if not data or "query" not in data:
         logging.error("No query provided")
         return "<div class='error-message'>No query provided</div>", 400
-    query = data["query"].strip()[:255].lower()  # Convert query to lowercase
+    query = data["query"].strip()[:255].lower()
     if not query:
         logging.error("Empty query")
         return "<div class='error-message'>Empty query</div>", 400
